@@ -77,18 +77,15 @@ public class Validators {
         return matcher.matches();
     }
 
-    /**
-     * Validate message
-     */
-    public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer)
-        throws MQClientException {
+    public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer) throws MQClientException {
+        //判断是否为空
         if (null == msg) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message is null");
         }
-        // topic
+        // 校验主题
         Validators.checkTopic(msg.getTopic());
 
-        // body
+        // 校验消息体
         if (null == msg.getBody()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body is null");
         }

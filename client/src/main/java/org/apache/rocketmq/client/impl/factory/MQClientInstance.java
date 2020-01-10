@@ -160,8 +160,11 @@ public class MQClientInstance {
     }
 
     public static TopicPublishInfo topicRouteData2TopicPublishInfo(final String topic, final TopicRouteData route) {
+        //创建TopicPublishInfo对象
         TopicPublishInfo info = new TopicPublishInfo();
+        //关联topicRoute
         info.setTopicRouteData(route);
+        //顺序消息,更新TopicPublishInfo
         if (route.getOrderTopicConf() != null && route.getOrderTopicConf().length() > 0) {
             String[] brokers = route.getOrderTopicConf().split(";");
             for (String broker : brokers) {
@@ -175,12 +178,17 @@ public class MQClientInstance {
 
             info.setOrderTopic(true);
         } else {
+            //非顺序消息更新TopicPublishInfo
             List<QueueData> qds = route.getQueueDatas();
             Collections.sort(qds);
+            //遍历topic队列信息
             for (QueueData qd : qds) {
+                //是否是写队列
                 if (PermName.isWriteable(qd.getPerm())) {
                     BrokerData brokerData = null;
+                    //遍历写队列Broker
                     for (BrokerData bd : route.getBrokerDatas()) {
+                        //根据名称获得读队列对应的Broker
                         if (bd.getBrokerName().equals(qd.getBrokerName())) {
                             brokerData = bd;
                             break;
@@ -194,14 +202,14 @@ public class MQClientInstance {
                     if (!brokerData.getBrokerAddrs().containsKey(MixAll.MASTER_ID)) {
                         continue;
                     }
-
+                    //封装TopicPublishInfo写队列
                     for (int i = 0; i < qd.getWriteQueueNums(); i++) {
                         MessageQueue mq = new MessageQueue(topic, qd.getBrokerName(), i);
                         info.getMessageQueueList().add(mq);
                     }
                 }
             }
-
+            //返回TopicPublishInfo对象
             info.setOrderTopic(false);
         }
 
@@ -610,6 +618,7 @@ public class MQClientInstance {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
                     TopicRouteData topicRouteData;
+                    //使用默认主题从NameServer获取路由信息
                     if (isDefault && defaultMQProducer != null) {
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
                             1000 * 3);
@@ -621,9 +630,11 @@ public class MQClientInstance {
                             }
                         }
                     } else {
+                        //使用指定主题从NameServer获取路由信息
                         topicRouteData = this.mQClientAPIImpl.getTopicRouteInfoFromNameServer(topic, 1000 * 3);
                     }
                     if (topicRouteData != null) {
+                        //判断路由是否需要更改
                         TopicRouteData old = this.topicRouteTable.get(topic);
                         boolean changed = topicRouteDataIsChange(old, topicRouteData);
                         if (!changed) {
@@ -641,12 +652,15 @@ public class MQClientInstance {
 
                             // Update Pub info
                             {
+                                //将topicRouteData转换为发布队列
                                 TopicPublishInfo publishInfo = topicRouteData2TopicPublishInfo(topic, topicRouteData);
                                 publishInfo.setHaveTopicRouterInfo(true);
+                                //遍历生产
                                 Iterator<Entry<String, MQProducerInner>> it = this.producerTable.entrySet().iterator();
                                 while (it.hasNext()) {
                                     Entry<String, MQProducerInner> entry = it.next();
                                     MQProducerInner impl = entry.getValue();
+                                    //生产者不为空时,更新publishInfo信息
                                     if (impl != null) {
                                         impl.updateTopicPublishInfo(topic, publishInfo);
                                     }
