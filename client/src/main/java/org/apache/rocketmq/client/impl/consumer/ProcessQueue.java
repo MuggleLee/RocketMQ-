@@ -44,8 +44,11 @@ public class ProcessQueue {
     public final static long REBALANCE_LOCK_INTERVAL = Long.parseLong(System.getProperty("rocketmq.client.rebalance.lockInterval", "20000"));
     private final static long PULL_MAX_IDLE_TIME = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
     private final InternalLogger log = ClientLogger.getLog();
+    // 读写锁，控制多线程并发修改 msgTreeMap、consumingMsgOrderlyTreeMap
     private final ReadWriteLock lockTreeMap = new ReentrantReadWriteLock();
+    // 消息存储容器，键为消息在 ConsumeQueue 中的偏移量，MessageExt：消息实体
     private final TreeMap<Long, MessageExt> msgTreeMap = new TreeMap<Long, MessageExt>();
+    // ProcessQueue 中总消息数
     private final AtomicLong msgCount = new AtomicLong();
     private final AtomicLong msgSize = new AtomicLong();
     private final Lock lockConsume = new ReentrantLock();
@@ -53,10 +56,15 @@ public class ProcessQueue {
      * A subset of msgTreeMap, will only be used when orderly consume
      */
     private final TreeMap<Long, MessageExt> consumingMsgOrderlyTreeMap = new TreeMap<Long, MessageExt>();
+    // 记录了废弃ProcessQueue的时候lockConsume的次数
     private final AtomicLong tryUnlockTimes = new AtomicLong(0);
+    // 当前 proccesQueue 中最大队列偏移量
     private volatile long queueOffsetMax = 0L;
+    // 当前 ProccesQueue 是否被丢弃
     private volatile boolean dropped = false;
+    // 上一次拉取消息的时间戳
     private volatile long lastPullTimestamp = System.currentTimeMillis();
+    // 上一次消费消息的时间戳
     private volatile long lastConsumeTimestamp = System.currentTimeMillis();
     private volatile boolean locked = false;
     private volatile long lastLockTimestamp = System.currentTimeMillis();
