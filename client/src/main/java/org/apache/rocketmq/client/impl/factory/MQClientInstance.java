@@ -988,6 +988,7 @@ public class MQClientInstance {
         this.rebalanceService.wakeup();
     }
 
+    // MQClientInstance遍历注册的消费者,对消费者执行doRebalance()方法
     public void doRebalance() {
         for (Map.Entry<String, MQConsumerInner> entry : this.consumerTable.entrySet()) {
             MQConsumerInner impl = entry.getValue();
